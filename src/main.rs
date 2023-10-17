@@ -1,3 +1,5 @@
+use std::{cmp::Ordering};
+
 use minifb::{Key, Window, WindowOptions};
 use rand::Rng;
 
@@ -57,7 +59,7 @@ struct Ball {
     position_y: u32,
 
     velocity_vec_norm: Box<[f64]>,
-    speed: u32,
+    speed: f32,
     width: u32,
     height: u32,
 
@@ -101,18 +103,17 @@ impl Ball {
         self._set_velocity_y(rand::thread_rng().gen_range(-1.0..1.0));
     }
 
-    fn _clear_history(&mut self){
+    fn _clear_history(&mut self) {
         self.history_pos_x = Vec::new();
         self.history_pos_y = Vec::new();
     }
 
-    fn _add_to_history_x(&mut self, new_x : u32){
+    fn _add_to_history_x(&mut self, new_x: u32) {
         self.history_pos_x.push(new_x)
     }
-    fn _add_to_history_y(&mut self, new_y : u32){
+    fn _add_to_history_y(&mut self, new_y: u32) {
         self.history_pos_y.push(new_y)
     }
-
 }
 
 fn build_new_ball(pos_x: u32, pos_y: u32, init_vel: Box<[f64]>) -> Ball {
@@ -121,7 +122,7 @@ fn build_new_ball(pos_x: u32, pos_y: u32, init_vel: Box<[f64]>) -> Ball {
         position_y: pos_y,
 
         velocity_vec_norm: init_vel,
-        speed: 5,
+        speed: 5.0,
         width: 10,
         height: 10,
         history_pos_x: Vec::new(),
@@ -131,6 +132,7 @@ fn build_new_ball(pos_x: u32, pos_y: u32, init_vel: Box<[f64]>) -> Ball {
 }
 /* MAIN FUNCTION-------------------------------------------------------------------------------------------------*/
 fn main() {
+    let mut play_against_bot = false;
     let mut player1 = build_new_player(1, (WINDOW_HEIGHT / 2) as u32);
     let mut player2 = build_new_player((WINDOW_WIDTH - 11) as u32, (WINDOW_HEIGHT / 2) as u32);
     let mut ball = build_new_ball(
@@ -162,7 +164,13 @@ fn main() {
     while window.is_open() && !window.is_key_down(Key::Escape) {
         if !game_over {
             clear_buffer(&mut buffer);
-            handle_input(&mut window, &mut player1, &mut player2);
+            handle_input(
+                &mut window,
+                &mut player1,
+                &mut player2,
+                &ball,
+                play_against_bot,
+            );
             game_over = ball_physics(&mut ball, &mut player1, &mut player2);
 
             calc_image(&mut buffer, &player1, &player2, &ball, loop_count);
@@ -173,6 +181,10 @@ fn main() {
         if window.is_key_down(Key::R) {
             game_over = initialise_game(&mut player1, &mut player2, &mut ball);
         }
+        if window.is_key_down(Key::B) {
+            play_against_bot = !play_against_bot;
+        }
+        ball.speed = f32::log2(0.1+loop_count as f32);
         window
             .update_with_buffer(&buffer, WINDOW_WIDTH, WINDOW_HEIGHT)
             .unwrap();
@@ -181,7 +193,13 @@ fn main() {
 }
 
 /* INPUT HANDLEING AND PHYSICS -----------------------------------------------------------------------------------------------*/
-fn handle_input(window: &mut Window, player1: &mut Player, player2: &mut Player) {
+fn handle_input(
+    window: &mut Window,
+    player1: &mut Player,
+    player2: &mut Player,
+    ball: &Ball,
+    play_against_bot: bool,
+) {
     if window.is_key_down(Key::W) {
         move_if_valid(player1, "up");
     }
@@ -189,11 +207,21 @@ fn handle_input(window: &mut Window, player1: &mut Player, player2: &mut Player)
         move_if_valid(player1, "down");
     }
 
-    if window.is_key_down(Key::Up) {
-        move_if_valid(player2, "up");
-    }
-    if window.is_key_down(Key::Down) {
-        move_if_valid(player2, "down");
+    if !play_against_bot {
+        if window.is_key_down(Key::Up) {
+            move_if_valid(player2, "up");
+        }
+        if window.is_key_down(Key::Down) {
+            move_if_valid(player2, "down");
+        }
+    } else {
+        let player_y = player2.position_y + player2.height/2;
+        match ball.position_y.cmp(&player_y){
+            Ordering::Less => move_if_valid(player2, "up"),
+            Ordering::Greater => move_if_valid(player2, "down"),
+            Ordering::Equal => ()
+        }
+
     }
 }
 
@@ -247,10 +275,10 @@ fn ball_physics(ball: &mut Ball, player1: &mut Player, player2: &mut Player) -> 
         || ((ball.position_y as i32) + y_dif + (ball.height as i32) > WINDOW_HEIGHT as i32)
     {
         ball._set_velocity_y(-y_0);
-        
+
         let current_x = ball._get_velocity_x();
         let current_y = ball._get_velocity_y();
-        
+
         match rand::thread_rng().gen_range(1..=10) {
             1 => ball._set_velocity_x(current_x * 1.5),
             2 => ball._set_velocity_y(current_y * 1.5),
@@ -297,7 +325,13 @@ fn ball_physics(ball: &mut Ball, player1: &mut Player, player2: &mut Player) -> 
 }
 
 /* DRAWING TO THE BUFFER---------------------------------------------------------------------------------------------------*/
-fn calc_image(buffer: &mut Vec<u32>, player1: &Player, player2: &Player, ball: &Ball, loop_counter: u32) {
+fn calc_image(
+    buffer: &mut Vec<u32>,
+    player1: &Player,
+    player2: &Player,
+    ball: &Ball,
+    loop_counter: u32,
+) {
     draw_player(buffer, &player1, loop_counter);
     draw_player(buffer, &player2, loop_counter);
     draw_ball(buffer, &ball, loop_counter);
@@ -316,7 +350,12 @@ fn draw_player(buffer: &mut Vec<u32>, player: &Player, loop_counter: u32) {
 fn draw_ball(buffer: &mut Vec<u32>, ball: &Ball, loop_counter: u32) {
     for x in 0..ball.width {
         for y in 0..ball.height {
-            draw_pixel(buffer, ball.position_x + x, ball.position_y + y, loop_counter + _RED);
+            draw_pixel(
+                buffer,
+                ball.position_x + x,
+                ball.position_y + y,
+                loop_counter + _RED,
+            );
         }
     }
 }
@@ -337,9 +376,9 @@ fn draw_game_over_screen(buffer: &mut Vec<u32>, ball: &Ball, loop_counter: u32) 
     }
 }
 
-fn draw_trace( buffer: &mut Vec<u32>,ball: &Ball){
-    for i in 0..ball.history_pos_x.len(){
-        draw_pixel(buffer, ball.history_pos_x[i], ball.history_pos_y[i], _RED);
+fn draw_trace(buffer: &mut Vec<u32>, ball: &Ball) {
+    for i in 0..ball.history_pos_x.len() {
+        draw_pixel(buffer, ball.history_pos_x[i], ball.history_pos_y[i], _RED + (i as u32 * 0xff ));
     }
 }
 

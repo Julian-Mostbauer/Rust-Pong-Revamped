@@ -229,17 +229,13 @@ fn ball_physics(ball: &mut Ball, player1: &mut Player, player2: &mut Player) -> 
         || ((ball.position_y as i32) + y_dif + (ball.height as i32) > WINDOW_HEIGHT as i32)
     {
         ball._set_velocity_y(-y_0);
+        
         let current_x = ball._get_velocity_x();
         let current_y = ball._get_velocity_y();
-        match rand::thread_rng().gen_range(1..=3) {
-            1 => {
-                ball._set_velocity_x(current_x * 2.0);
-                ball._set_velocity_y(current_y / 2.0);
-            }
-            2 => {
-                ball._set_velocity_x(current_x / 2.0);
-                ball._set_velocity_y(current_y * 2.0);
-            }
+        
+        match rand::thread_rng().gen_range(1..=10) {
+            1 => ball._set_velocity_x(current_x * 1.5),
+            2 => ball._set_velocity_y(current_y * 1.5),
             _ => (),
         }
         ball._normalize();

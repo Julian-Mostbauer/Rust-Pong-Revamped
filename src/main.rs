@@ -60,6 +60,9 @@ struct Ball {
     speed: u32,
     width: u32,
     height: u32,
+
+    history_pos_x: Vec<u32>,
+    history_pos_y: Vec<u32>,
 }
 
 impl Ball {
@@ -93,10 +96,23 @@ impl Ball {
 
     fn init(&mut self) {
         self._set_x(WINDOW_WIDTH as u32 / 2);
-        self._set_x(WINDOW_HEIGHT as u32 / 2);
+        self._set_y(WINDOW_HEIGHT as u32 / 2);
         self._set_velocity_x(rand::thread_rng().gen_range(-1.0..1.0));
         self._set_velocity_y(rand::thread_rng().gen_range(-1.0..1.0));
     }
+
+    fn _clear_history(&mut self){
+        self.history_pos_x = Vec::new();
+        self.history_pos_y = Vec::new();
+    }
+
+    fn _add_to_history_x(&mut self, new_x : u32){
+        self.history_pos_x.push(new_x)
+    }
+    fn _add_to_history_y(&mut self, new_y : u32){
+        self.history_pos_y.push(new_y)
+    }
+
 }
 
 fn build_new_ball(pos_x: u32, pos_y: u32, init_vel: Box<[f64]>) -> Ball {
@@ -108,6 +124,8 @@ fn build_new_ball(pos_x: u32, pos_y: u32, init_vel: Box<[f64]>) -> Ball {
         speed: 5,
         width: 10,
         height: 10,
+        history_pos_x: Vec::new(),
+        history_pos_y: Vec::new(),
     };
     return ball;
 }
@@ -147,7 +165,7 @@ fn main() {
             handle_input(&mut window, &mut player1, &mut player2);
             game_over = ball_physics(&mut ball, &mut player1, &mut player2);
 
-            calc_image(&mut buffer, &player1, &player2, &ball);
+            calc_image(&mut buffer, &player1, &player2, &ball, loop_count);
         } else {
             println!("Game Over!");
             draw_game_over_screen(&mut buffer, &ball, loop_count);
@@ -273,18 +291,21 @@ fn ball_physics(ball: &mut Ball, player1: &mut Player, player2: &mut Player) -> 
 
     ball._set_x(x_new);
     ball._set_y(y_new);
+    ball._add_to_history_x(x_new);
+    ball._add_to_history_y(y_new);
     return false;
 }
 
 /* DRAWING TO THE BUFFER---------------------------------------------------------------------------------------------------*/
-fn calc_image(buffer: &mut Vec<u32>, player1: &Player, player2: &Player, ball: &Ball) {
-    draw_player(buffer, &player1);
-    draw_player(buffer, &player2);
-    draw_ball(buffer, &ball);
+fn calc_image(buffer: &mut Vec<u32>, player1: &Player, player2: &Player, ball: &Ball, loop_counter: u32) {
+    draw_player(buffer, &player1, loop_counter);
+    draw_player(buffer, &player2, loop_counter);
+    draw_ball(buffer, &ball, loop_counter);
     draw_score(buffer, &player1, &player2);
+    draw_trace(buffer, &ball);
 }
 
-fn draw_player(buffer: &mut Vec<u32>, player: &Player) {
+fn draw_player(buffer: &mut Vec<u32>, player: &Player, loop_counter: u32) {
     for x in 0..player.width {
         for y in 0..player.height {
             draw_pixel(buffer, player.position_x + x, player.position_y + y, _WHITE);
@@ -292,17 +313,17 @@ fn draw_player(buffer: &mut Vec<u32>, player: &Player) {
     }
 }
 
-fn draw_ball(buffer: &mut Vec<u32>, ball: &Ball) {
+fn draw_ball(buffer: &mut Vec<u32>, ball: &Ball, loop_counter: u32) {
     for x in 0..ball.width {
         for y in 0..ball.height {
-            draw_pixel(buffer, ball.position_x + x, ball.position_y + y, _WHITE);
+            draw_pixel(buffer, ball.position_x + x, ball.position_y + y, loop_counter + _RED);
         }
     }
 }
 
 fn draw_game_over_screen(buffer: &mut Vec<u32>, ball: &Ball, loop_counter: u32) {
     clear_buffer(buffer);
-    draw_ball(buffer, ball);
+    draw_ball(buffer, ball, loop_counter);
 
     if loop_counter % 24 == 0
         || (loop_counter + 1) % 24 == 0
@@ -313,6 +334,12 @@ fn draw_game_over_screen(buffer: &mut Vec<u32>, ball: &Ball, loop_counter: u32) 
         for i in buffer.iter_mut() {
             *i = _RED;
         }
+    }
+}
+
+fn draw_trace( buffer: &mut Vec<u32>,ball: &Ball){
+    for i in 0..ball.history_pos_x.len(){
+        draw_pixel(buffer, ball.history_pos_x[i], ball.history_pos_y[i], _RED);
     }
 }
 

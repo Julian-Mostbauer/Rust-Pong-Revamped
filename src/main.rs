@@ -116,13 +116,13 @@ impl Ball {
     }
 }
 
-fn build_new_ball(pos_x: u32, pos_y: u32, init_vel: Box<[f64]>) -> Ball {
+fn build_new_ball(pos_x: u32, pos_y: u32, init_vel: Box<[f64]>, fps: f32) -> Ball {
     let ball = Ball {
         position_x: pos_x,
         position_y: pos_y,
 
         velocity_vec_norm: init_vel,
-        speed: 5.0,
+        speed: fps/ 30.0,
         width: 10,
         height: 10,
         history_pos_x: Vec::new(),
@@ -132,6 +132,7 @@ fn build_new_ball(pos_x: u32, pos_y: u32, init_vel: Box<[f64]>) -> Ball {
 }
 /* MAIN FUNCTION-------------------------------------------------------------------------------------------------*/
 fn main() {
+    let fps: f64 = 60.0;
     let mut play_against_bot = false;
     let mut player1 = build_new_player(1, (WINDOW_HEIGHT / 2) as u32);
     let mut player2 = build_new_player((WINDOW_WIDTH - 11) as u32, (WINDOW_HEIGHT / 2) as u32);
@@ -142,6 +143,7 @@ fn main() {
             rand::thread_rng().gen_range(-1.0..1.0),
             rand::thread_rng().gen_range(-1.0..1.0),
         ]),
+        fps as f32
     );
 
     let mut game_over = initialise_game(&mut player1, &mut player2, &mut ball);
@@ -159,7 +161,7 @@ fn main() {
     });
 
     // Limit to max ~60 fps update rate
-    window.limit_update_rate(Some(std::time::Duration::from_micros(16600)));
+    window.limit_update_rate(Some(std::time::Duration::from_micros((1.0 / fps * 1_000_000.0) as u64)));
     let mut loop_count = 0;
     while window.is_open() && !window.is_key_down(Key::Escape) {
         if !game_over {
@@ -168,14 +170,15 @@ fn main() {
                 &mut window,
                 &mut player1,
                 &mut player2,
-                &ball,
+                &mut ball,
                 play_against_bot,
+                loop_count
             );
             game_over = ball_physics(&mut ball, &mut player1, &mut player2);
 
             calc_image(&mut buffer, &player1, &player2, &ball, loop_count);
         } else {
-            println!("Game Over!");
+            //println!("Game Over!");
             draw_game_over_screen(&mut buffer, &ball, loop_count);
         }
         if window.is_key_down(Key::R) {
@@ -184,7 +187,7 @@ fn main() {
         if window.is_key_down(Key::B) {
             play_against_bot = !play_against_bot;
         }
-        ball.speed = f32::log2(0.1+loop_count as f32);
+        ball.speed = -(fps as f32 /f32::log2(1.1+loop_count as f32)) + 20.0;
         window
             .update_with_buffer(&buffer, WINDOW_WIDTH, WINDOW_HEIGHT)
             .unwrap();
@@ -197,8 +200,9 @@ fn handle_input(
     window: &mut Window,
     player1: &mut Player,
     player2: &mut Player,
-    ball: &Ball,
+    ball: &mut Ball,
     play_against_bot: bool,
+    loop_counter: u32
 ) {
     if window.is_key_down(Key::W) {
         move_if_valid(player1, "up");
@@ -206,7 +210,7 @@ fn handle_input(
     if window.is_key_down(Key::S) {
         move_if_valid(player1, "down");
     }
-
+    /*Player 2 Movement */
     if !play_against_bot {
         if window.is_key_down(Key::Up) {
             move_if_valid(player2, "up");
@@ -221,7 +225,21 @@ fn handle_input(
             Ordering::Greater => move_if_valid(player2, "down"),
             Ordering::Equal => ()
         }
+    }
 
+    if window.is_key_down(Key::I){
+        println!("--------------------FRAME {}--------------------------", loop_counter);
+        println!("Player 1: ");
+        println!("Position = ({}, {})", player1.position_x, player1.position_y);
+
+        println!("Player 2: ");
+        println!("Position = ({}, {})", player2.position_x, player2.position_y);
+
+        println!("Ball: ");
+        println!("Position = ({},{})", ball.position_x, ball.position_y);
+        println!("Speed Vector = ({},{})", ball._get_velocity_x() * ball.speed as f64, ball._get_velocity_y() * ball.speed as f64);
+        println!("Normalized Speed Vector = ({},{})",ball._get_velocity_x(), ball._get_velocity_y());
+        println!("Trace lenght = {}", ball.history_pos_x.len());
     }
 }
 
@@ -317,6 +335,11 @@ fn ball_physics(ball: &mut Ball, player1: &mut Player, player2: &mut Player) -> 
         return false;
     }
 
+    /*BOUNCE ON SCORE */
+    
+
+    /* */
+
     ball._set_x(x_new);
     ball._set_y(y_new);
     ball._add_to_history_x(x_new);
@@ -378,7 +401,7 @@ fn draw_game_over_screen(buffer: &mut Vec<u32>, ball: &Ball, loop_counter: u32) 
 
 fn draw_trace(buffer: &mut Vec<u32>, ball: &Ball) {
     for i in 0..ball.history_pos_x.len() {
-        draw_pixel(buffer, ball.history_pos_x[i], ball.history_pos_y[i], _RED + (i as u32 * 0xff ));
+        draw_pixel(buffer, ball.history_pos_x[i], ball.history_pos_y[i], _RED + (i as u32 * 0x100 ));
     }
 }
 

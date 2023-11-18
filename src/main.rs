@@ -1,4 +1,4 @@
-use std::{cmp::Ordering};
+use std::cmp::Ordering;
 
 use minifb::{Key, Window, WindowOptions};
 use rand::Rng;
@@ -41,7 +41,7 @@ impl Player {
 }
 
 fn build_new_player(x: u32, y: u32) -> Player {
-    let player = Player {
+    Player {
         position_x: x,
         position_y: y,
 
@@ -50,8 +50,7 @@ fn build_new_player(x: u32, y: u32) -> Player {
         height: 100,
         width: 10,
         score: 0,
-    };
-    return player;
+    }
 }
 /* CODE FOR BALL---------------------------------------------------------------------------------------------------*/
 struct Ball {
@@ -76,10 +75,10 @@ impl Ball {
     }
 
     fn _get_velocity_x(&mut self) -> f64 {
-        return self.velocity_vec_norm[0];
+        self.velocity_vec_norm[0]
     }
     fn _get_velocity_y(&mut self) -> f64 {
-        return self.velocity_vec_norm[1];
+        self.velocity_vec_norm[1]
     }
 
     fn _set_velocity_x(&mut self, new_x: f64) {
@@ -94,6 +93,8 @@ impl Ball {
         let y_0 = self._get_velocity_y();
         self._set_velocity_x(x_0 / f64::max(x_0.abs(), y_0.abs()));
         self._set_velocity_y(y_0 / f64::max(x_0.abs(), y_0.abs()));
+        // self._set_velocity_x(x_0 / x_0.abs() + y_0.abs());
+        // self._set_velocity_y(y_0 / x_0.abs() + y_0.abs());
     }
 
     fn init(&mut self) {
@@ -117,18 +118,17 @@ impl Ball {
 }
 
 fn build_new_ball(pos_x: u32, pos_y: u32, init_vel: Box<[f64]>, fps: f32) -> Ball {
-    let ball = Ball {
+    Ball {
         position_x: pos_x,
         position_y: pos_y,
 
         velocity_vec_norm: init_vel,
-        speed: fps/ 30.0,
+        speed: fps / 30.0,
         width: 10,
         height: 10,
         history_pos_x: Vec::new(),
         history_pos_y: Vec::new(),
-    };
-    return ball;
+    }
 }
 /* MAIN FUNCTION-------------------------------------------------------------------------------------------------*/
 fn main() {
@@ -143,7 +143,7 @@ fn main() {
             rand::thread_rng().gen_range(-1.0..1.0),
             rand::thread_rng().gen_range(-1.0..1.0),
         ]),
-        fps as f32
+        fps as f32,
     );
 
     let mut game_over = initialise_game(&mut player1, &mut player2, &mut ball);
@@ -161,7 +161,9 @@ fn main() {
     });
 
     // Limit to max ~60 fps update rate
-    window.limit_update_rate(Some(std::time::Duration::from_micros((1.0 / fps * 1_000_000.0) as u64)));
+    window.limit_update_rate(Some(std::time::Duration::from_micros(
+        (1.0 / fps * 1_000_000.0) as u64,
+    )));
     let mut loop_count = 0;
     while window.is_open() && !window.is_key_down(Key::Escape) {
         if !game_over {
@@ -172,7 +174,7 @@ fn main() {
                 &mut player2,
                 &mut ball,
                 play_against_bot,
-                loop_count
+                loop_count,
             );
             game_over = ball_physics(&mut ball, &mut player1, &mut player2);
 
@@ -187,7 +189,7 @@ fn main() {
         if window.is_key_down(Key::B) {
             play_against_bot = !play_against_bot;
         }
-        ball.speed = -(fps as f32 /f32::log2(1.1+loop_count as f32)) + 20.0;
+        // ball.speed = -(fps as f32 /f32::log2(1.1+loop_count as f32)) + 20.0;
         window
             .update_with_buffer(&buffer, WINDOW_WIDTH, WINDOW_HEIGHT)
             .unwrap();
@@ -202,7 +204,7 @@ fn handle_input(
     player2: &mut Player,
     ball: &mut Ball,
     play_against_bot: bool,
-    loop_counter: u32
+    loop_counter: u32,
 ) {
     if window.is_key_down(Key::W) {
         move_if_valid(player1, "up");
@@ -219,33 +221,49 @@ fn handle_input(
             move_if_valid(player2, "down");
         }
     } else {
-        let player_y = player2.position_y + player2.height/2;
-        match ball.position_y.cmp(&player_y){
+        let player_y = player2.position_y + player2.height / 2;
+        match ball.position_y.cmp(&player_y) {
             Ordering::Less => move_if_valid(player2, "up"),
             Ordering::Greater => move_if_valid(player2, "down"),
-            Ordering::Equal => ()
+            Ordering::Equal => (),
         }
     }
 
-    if window.is_key_down(Key::I){
-        println!("--------------------FRAME {}--------------------------", loop_counter);
+    if window.is_key_down(Key::I) {
+        println!(
+            "--------------------FRAME {}--------------------------",
+            loop_counter
+        );
         println!("Player 1: ");
-        println!("Position = ({}, {})", player1.position_x, player1.position_y);
+        println!(
+            "Position = ({}, {})",
+            player1.position_x, player1.position_y
+        );
 
         println!("Player 2: ");
-        println!("Position = ({}, {})", player2.position_x, player2.position_y);
+        println!(
+            "Position = ({}, {})",
+            player2.position_x, player2.position_y
+        );
 
         println!("Ball: ");
         println!("Position = ({},{})", ball.position_x, ball.position_y);
-        println!("Speed Vector = ({},{})", ball._get_velocity_x() * ball.speed as f64, ball._get_velocity_y() * ball.speed as f64);
-        println!("Normalized Speed Vector = ({},{})",ball._get_velocity_x(), ball._get_velocity_y());
+        println!(
+            "Speed Vector = ({},{})",
+            ball._get_velocity_x() * ball.speed as f64,
+            ball._get_velocity_y() * ball.speed as f64
+        );
+        println!(
+            "Normalized Speed Vector = ({},{})",
+            ball._get_velocity_x(),
+            ball._get_velocity_y()
+        );
         println!("Trace lenght = {}", ball.history_pos_x.len());
     }
 }
 
 fn move_if_valid(player: &mut Player, direction: &str) {
-    let distance: u32;
-    distance = player.speed;
+    let distance = player.speed;
 
     match direction {
         "up" => {
@@ -336,7 +354,6 @@ fn ball_physics(ball: &mut Ball, player1: &mut Player, player2: &mut Player) -> 
     }
 
     /*BOUNCE ON SCORE */
-    
 
     /* */
 
@@ -344,25 +361,25 @@ fn ball_physics(ball: &mut Ball, player1: &mut Player, player2: &mut Player) -> 
     ball._set_y(y_new);
     ball._add_to_history_x(x_new);
     ball._add_to_history_y(y_new);
-    return false;
+    false
 }
 
 /* DRAWING TO THE BUFFER---------------------------------------------------------------------------------------------------*/
 fn calc_image(
-    buffer: &mut Vec<u32>,
+    buffer: &mut [u32],
     player1: &Player,
     player2: &Player,
     ball: &Ball,
     loop_counter: u32,
 ) {
-    draw_player(buffer, &player1, loop_counter);
-    draw_player(buffer, &player2, loop_counter);
-    draw_ball(buffer, &ball, loop_counter);
-    draw_score(buffer, &player1, &player2);
-    draw_trace(buffer, &ball);
+    draw_player(buffer, player1, loop_counter);
+    draw_player(buffer, player2, loop_counter);
+    draw_ball(buffer, ball, loop_counter);
+    draw_score(buffer, player1, player2);
+    draw_trace(buffer, ball);
 }
 
-fn draw_player(buffer: &mut Vec<u32>, player: &Player, loop_counter: u32) {
+fn draw_player(buffer: &mut [u32], player: &Player, loop_counter: u32) {
     for x in 0..player.width {
         for y in 0..player.height {
             draw_pixel(buffer, player.position_x + x, player.position_y + y, _WHITE);
@@ -370,7 +387,7 @@ fn draw_player(buffer: &mut Vec<u32>, player: &Player, loop_counter: u32) {
     }
 }
 
-fn draw_ball(buffer: &mut Vec<u32>, ball: &Ball, loop_counter: u32) {
+fn draw_ball(buffer: &mut [u32], ball: &Ball, loop_counter: u32) {
     for x in 0..ball.width {
         for y in 0..ball.height {
             draw_pixel(
@@ -383,7 +400,7 @@ fn draw_ball(buffer: &mut Vec<u32>, ball: &Ball, loop_counter: u32) {
     }
 }
 
-fn draw_game_over_screen(buffer: &mut Vec<u32>, ball: &Ball, loop_counter: u32) {
+fn draw_game_over_screen(buffer: &mut [u32], ball: &Ball, loop_counter: u32) {
     clear_buffer(buffer);
     draw_ball(buffer, ball, loop_counter);
 
@@ -399,13 +416,18 @@ fn draw_game_over_screen(buffer: &mut Vec<u32>, ball: &Ball, loop_counter: u32) 
     }
 }
 
-fn draw_trace(buffer: &mut Vec<u32>, ball: &Ball) {
+fn draw_trace(buffer: &mut [u32], ball: &Ball) {
     for i in 0..ball.history_pos_x.len() {
-        draw_pixel(buffer, ball.history_pos_x[i], ball.history_pos_y[i], _RED + (i as u32 * 0x100 ));
+        draw_pixel(
+            buffer,
+            ball.history_pos_x[i],
+            ball.history_pos_y[i],
+            _RED + (i as u32 * 0x100),
+        );
     }
 }
 
-fn draw_score(buffer: &mut Vec<u32>, player1: &Player, player2: &Player) {
+fn draw_score(buffer: &mut [u32], player1: &Player, player2: &Player) {
     for y in 0..=player2.score * 10 {
         for x in 0..10 {
             draw_pixel(buffer, WINDOW_WIDTH as u32 / 2 - 1 - x, y, _WHITE);
@@ -418,12 +440,12 @@ fn draw_score(buffer: &mut Vec<u32>, player1: &Player, player2: &Player) {
     }
 }
 
-fn draw_pixel(buffer: &mut Vec<u32>, x: u32, y: u32, color: u32) {
+fn draw_pixel(buffer: &mut [u32], x: u32, y: u32, color: u32) {
     let pixel: usize = (x + ((WINDOW_WIDTH as u32) * y)) as usize;
-    let _ = buffer[pixel] = color;
+    buffer[pixel] = color;
 }
 
-fn clear_buffer(buffer: &mut Vec<u32>) {
+fn clear_buffer(buffer: &mut [u32]) {
     for i in buffer.iter_mut() {
         *i = _BLACK;
     }
@@ -437,5 +459,5 @@ fn initialise_game(player1: &mut Player, player2: &mut Player, ball: &mut Ball) 
     ball.init();
     ball._normalize();
 
-    return false;
+    false
 }

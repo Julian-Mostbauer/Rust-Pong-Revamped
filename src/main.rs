@@ -91,10 +91,10 @@ impl Ball {
     fn _normalize(&mut self) {
         let x_0 = self._get_velocity_x();
         let y_0 = self._get_velocity_y();
-        self._set_velocity_x(x_0 / f64::max(x_0.abs(), y_0.abs()));
-        self._set_velocity_y(y_0 / f64::max(x_0.abs(), y_0.abs()));
-        // self._set_velocity_x(x_0 / x_0.abs() + y_0.abs());
-        // self._set_velocity_y(y_0 / x_0.abs() + y_0.abs());
+        // self._set_velocity_x(x_0 / f64::max(x_0.abs(), y_0.abs()));
+        // self._set_velocity_y(y_0 / f64::max(x_0.abs(), y_0.abs()));
+        self._set_velocity_x(x_0 / x_0.abs() + y_0.abs());
+        self._set_velocity_y(y_0 / x_0.abs() + y_0.abs());
     }
 
     fn init(&mut self) {
@@ -189,7 +189,7 @@ fn main() {
         if window.is_key_down(Key::B) {
             play_against_bot = !play_against_bot;
         }
-        // ball.speed = -(fps as f32 /f32::log2(1.1+loop_count as f32)) + 20.0;
+        ball.speed = 0.001 * fps as f32;
         window
             .update_with_buffer(&buffer, WINDOW_WIDTH, WINDOW_HEIGHT)
             .unwrap();
